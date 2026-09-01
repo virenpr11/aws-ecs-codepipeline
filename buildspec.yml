@@ -1,0 +1,21 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo "Logging in to Amazon ECR..."
+      - aws sts get-caller-identity
+      - aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin "$ECR_URI"
+
+  build:
+    commands:
+      - echo "Building Docker image..."
+      - docker build -t "$ECR_URI:$CODEBUILD_RESOLVED_SOURCE_VERSION" .
+      - echo "Pushing Docker image..."
+      - docker push "$ECR_URI:$CODEBUILD_RESOLVED_SOURCE_VERSION"
+      - echo "Creating imagedefinitions.json..."
+      - printf '[{"name":"lab5-app","imageUri":"%s"}]' "$ECR_URI:$CODEBUILD_RESOLVED_SOURCE_VERSION" > imagedefinitions.json
+
+artifacts:
+  files:
+    - imagedefinitions.json
